@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Weather Dashboard</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+
+        /* Default background gradient transition */
+        body {
+            background: linear-gradient(135deg, #74b9ff, #a29bfe);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            transition: background 0.8s ease; /* Smooth color change */
+        }
+
+        .card { background: rgba(255, 255, 255, 0.92); padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); width: 100%; max-width: 450px; text-align: center; backdrop-filter: blur(5px); }
+        .search-box { display: flex; gap: 10px; margin-bottom: 25px; }
+        input { flex: 1; padding: 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 16px; outline: none; }
+        button { background: #6c5ce7; color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: bold; transition: 0.2s; }
+        button:hover { background: #5b4cc4; }
+        .error { color: #d63031; margin-bottom: 15px; display: none; font-weight: 500; }
+        .weather-info { display: none; }
+        .city { font-size: 24px; font-weight: bold; color: #2d3436; }
+        .temp { font-size: 54px; font-weight: 300; color: #2d3436; margin: 5px 0; }
+
+        /* High / Low Styling */
+        .high-low { font-size: 14px; color: #636e72; margin-bottom: 10px; font-weight: 500; }
+        .high-low span { color: #2d3436; margin: 0 5px; }
+
+        .desc { font-size: 18px; text-transform: capitalize; color: #636e72; margin-bottom: 15px; font-weight: 500; }
+        .details { display: flex; justify-content: space-around; margin-top: 20px; border-top: 1px solid #eee; padding-top: 20px; }
+        .detail-item { font-size: 13px; color: #636e72; text-transform: uppercase; letter-spacing: 0.5px; }
+        .detail-item span { display: block; font-size: 18px; font-weight: bold; color: #2d3436; margin-top: 5px; text-transform: none; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <div class="search-box">
+        <input type="text" id="cityInput" placeholder="Enter city name..." value="London">
+        <button onclick="getWeather()">Search</button>
+    </div>
+
+    <div class="error" id="errorMsg">City not found!</div>
+
+    <div class="weather-info" id="weatherInfo">
+        <div class="city" id="location">London, GB</div>
+        <img id="weatherIcon" src="" alt="Weather Icon" style="width: 100px; height: 100px;">
+        <div class="temp" id="temperature">23°C</div>
+
+        <div class="high-low">H: <span id="tempMax">--°C</span> • L: <span id="tempMin">--°C</span></div>
+
+        <div class="desc" id="description">Clear Sky</div>
+
+        <div class="details">
+            <div class="detail-item">Feels Like <span id="feelsLike">21°C</span></div>
+            <div class="detail-item">Humidity <span id="humidity">45%</span></div>
+            <div class="detail-item">Wind <span id="windSpeed">4.5 m/s</span></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Dictionary mapping weather conditions to beautiful CSS Gradients
+    const themes = {
+        Clear: "linear-gradient(135deg, #fdeff4, #ffde59)",      // Sunny Warm
+        Clouds: "linear-gradient(135deg, #bdc3c7, #2c3e50)",     // Cloudy Gray
+        Rain: "linear-gradient(135deg, #4b6cb7, #182848)",       // Rainy Blue
+        Drizzle: "linear-gradient(135deg, #757f9a, #4a569d)",    // Muted Drizzle
+        Thunderstorm: "linear-gradient(135deg, #1f1c2c, #928dab)",// Dark Storm
+        Snow: "linear-gradient(135deg, #e6f7ff, #ffffff)",       // Snowy White
+        Mist: "linear-gradient(135deg, #606c88, #3f4c6b)",       // Foggy/Hazy
+        Smoke: "linear-gradient(135deg, #606c88, #3f4c6b)",
+        Haze: "linear-gradient(135deg, #606c88, #3f4c6b)",
+        Fog: "linear-gradient(135deg, #606c88, #3f4c6b)"
+    };
+
+    async function getWeather() {
+        const city = document.getElementById('cityInput').value;
+        const errorMsg = document.getElementById('errorMsg');
+        const weatherInfo = document.getElementById('weatherInfo');
+
+        if (!city) return;
+
+        try {
+            const response = await fetch(`http://127.0.0.1:5000/api/weather?city=${city}`);
+            const data = await response.json();
+
+            if (data.status === "error") {
+                errorMsg.innerText = data.message;
+                errorMsg.style.display = 'block';
+                weatherInfo.style.display = 'none';
+            } else {
+                errorMsg.style.display = 'none';
+// Fallback to main temperature if max/min are undefined
+document.getElementById('tempMax').innerText = `${Math.round(data.metrics.temp_max || data.metrics.temperature)}°C`;
+document.getElementById('tempMin').innerText = `${Math.round(data.metrics.temp_min || data.metrics.temperature)}°C`;
+                // 1. Inject Data into UI
+                document.getElementById('location').innerText = `${data.location.city}, ${data.location.country}`;
+                document.getElementById('weatherIcon').src = data.weather.icon_url;
+                document.getElementById('temperature').innerText = `${Math.round(data.metrics.temperature)}°C`;
+                document.getElementById('tempMax').innerText = `${Math.round(data.metrics.temp_max)}°C`;
+                document.getElementById('tempMin').innerText = `${Math.round(data.metrics.temp_min)}°C`;
+                document.getElementById('description').innerText = data.weather.description;
+                document.getElementById('feelsLike').innerText = `${Math.round(data.metrics.feels_like)}°C`;
+                document.getElementById('humidity').innerText = `${data.metrics.humidity_percent}%`;
+                document.getElementById('windSpeed').innerText = `${data.metrics.wind_speed} m/s`;
+
+                // 2. Dynamically update the page background color based on the weather condition
+                const condition = data.weather.condition;
+                document.body.style.background = themes[condition] || "linear-gradient(135deg, #74b9ff, #a29bfe)";
+
+                weatherInfo.style.display = 'block';
+            }
+        } catch (error) {
+            errorMsg.innerText = "Cannot connect to backend server.";
+            errorMsg.style.display = 'block';
+            weatherInfo.style.display = 'none';
+        }
+    }
+
+    // Initialize
+    getWeather();
+</script>
+</body>
+</html>
